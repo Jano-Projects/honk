@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=HONK!
+GenericName=Jogo
+Comment=Um ganso acordou com ódio — roguelite feito em SQL
+Comment[en]=An angry goose roguelite whose engine is a SQL database
+Exec=honk
+Icon=honk
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=ganso;goose;roguelite;honk;duckdb;sql;
+StartupNotify=true

@@ -1,0 +1,15 @@
+HONK! - versao PORTATIL (sem instalar)
+======================================
+
+Para quem prefere nao instalar: descompacte e abra pelo lancador do seu sistema.
+(Quem quer o icone na Area de Trabalho e o jogo abrindo como um programa comum:
+ use os instaladores da pagina de lancamentos do projeto.)
+
+  Windows : dois cliques em JOGAR-Windows.bat
+  Linux   : sh jogar-linux.sh
+  macOS   : dois cliques em jogar-mac.command  (se bloquear: botao direito > Abrir)
+
+A primeira vez precisa de internet (baixa o motor DuckDB). Para nunca mais
+precisar, rode uma vez o preparar-offline do seu sistema (baixa ~75 MB).
+
+Codigo, instaladores e documentacao: https://github.com/Jano-Projects/honk

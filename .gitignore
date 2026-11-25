@@ -1,0 +1,14 @@
+# gerados pelo montador e pelos empacotadores
+dist/
+build/
+saida/
+# motor DuckDB-WASM e fontes (~75 MB): baixe com ferramentas/baixar-motor.sh
+vendor/
+# Python
+__pycache__/
+*.pyc
+# sistema
+.DS_Store
+Thumbs.db
+# ambiente Python dos testes
+.venv/

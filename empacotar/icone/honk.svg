@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- HONK! — ícone do jogo: um ganso bravo, em xilogravura (papel, tinta e um vermelho de carimbo).
+       Fonte de todos os ícones: empacotar/icone/gerar_icones.py converte para PNG, ICO e ICNS. -->
+  <defs>
+    <clipPath id="folha"><rect x="16" y="16" width="480" height="480" rx="88"/></clipPath>
+  </defs>
+  <!-- papel -->
+  <rect x="16" y="16" width="480" height="480" rx="88" fill="#ede0bd"/>
+  <g clip-path="url(#folha)">
+    <!-- sol de carimbo atrás da cabeça -->
+    <circle cx="300" cy="200" r="150" fill="#b8322a"/>
+    <!-- hachuras de goiva no fundo (canto de baixo) -->
+    <g stroke="#1c1611" stroke-width="9" stroke-linecap="round">
+      <path d="M16 380 L120 500"/><path d="M16 420 L90 505"/><path d="M16 460 L60 510"/>
+      <path d="M410 470 L500 380"/><path d="M440 490 L500 430"/>
+    </g>
+    <!-- pescoço -->
+    <path d="M128 520 C 128 400, 196 330, 222 262 L 336 282 C 300 340, 262 410, 280 520 Z"
+          fill="#fff8e6" stroke="#1c1611" stroke-width="20" stroke-linejoin="round"/>
+    <!-- cortes de goiva no pescoço -->
+    <g fill="none" stroke="#1c1611" stroke-width="8" stroke-linecap="round">
+      <path d="M200 380 q 22 10 44 0"/><path d="M188 430 q 26 12 52 0"/><path d="M178 478 q 30 12 60 0"/>
+    </g>
+    <!-- cabeça -->
+    <circle cx="282" cy="196" r="104" fill="#fff8e6" stroke="#1c1611" stroke-width="20"/>
+    <!-- bico aberto (HONK!) -->
+    <path d="M368 158 L 486 128 L 382 210 Z" fill="#e2583f" stroke="#1c1611" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M372 222 L 470 262 L 352 256 Z" fill="#e2583f" stroke="#1c1611" stroke-width="16" stroke-linejoin="round"/>
+    <!-- olho bravo e sobrancelha -->
+    <circle cx="318" cy="182" r="17" fill="#1c1611"/>
+    <path d="M262 136 L 356 164" stroke="#1c1611" stroke-width="22" stroke-linecap="round"/>
+    <!-- cicatriz costurada -->
+    <g stroke="#b8322a" stroke-width="8" stroke-linecap="round">
+      <path d="M214 214 L 262 268"/><path d="M222 248 L 240 230"/><path d="M236 262 L 254 244"/>
+    </g>
+  </g>
+  <!-- moldura do folheto -->
+  <rect x="16" y="16" width="480" height="480" rx="88" fill="none" stroke="#1c1611" stroke-width="24"/>
+</svg>

@@ -1,0 +1,13 @@
+# HONK! — a cada envio (push/pull request): monta o jogo e roda os testes rápidos das regras SQL.
+name: Testes
+on: [push, pull_request]
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install duckdb
+      - run: python3 ferramentas/montar.py
+      - run: python3 -m unittest discover -s testes -v

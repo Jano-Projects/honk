@@ -1,0 +1,132 @@
+# ==========================================================================
+#  HONK! — LANÇAMENTO AUTOMÁTICO
+#
+#  Ao criar uma tag de versão (ex.:  git tag v1.0.0 && git push --tags):
+#    1. monta o jogo (dist/), baixa o motor DuckDB e roda os testes das regras SQL
+#    2. gera os pacotes Linux (.deb e .rpm) e a versão portátil (.zip)
+#    3. gera o instalador do Windows (.exe, Inno Setup) numa máquina Windows
+#    4. gera o aplicativo do macOS (.dmg) numa máquina Mac
+#    5. publica tudo na página de Releases do GitHub
+#  Também dá para rodar à mão (aba Actions > Lançamento > Run workflow): aí só gera
+#  os arquivos (ficam em "Artifacts"), sem publicar.
+# ==========================================================================
+name: Lançamento
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  montar:
+    name: Montar, testar e empacotar (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+
+      - name: Versão (da tag, ou do arquivo VERSAO)
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSAO; fi
+          echo "HONK_VERSAO=$(cat VERSAO)" >> "$GITHUB_ENV"
+
+      - name: Baixar o motor DuckDB e as fontes
+        run: sh ferramentas/baixar-motor.sh
+
+      - name: Montar o jogo (dist/)
+        run: python3 ferramentas/montar.py
+
+      - name: Testar as regras SQL
+        run: |
+          pip install duckdb
+          python3 -m unittest discover -s testes -v
+          cd testes && python3 robo_bugs.py 1 1500
+
+      - name: Pacotes .deb e .rpm
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q rpm
+          HONK_MANTENEDOR="Victor H. Correa <${{ vars.EMAIL_MANTENEDOR || 'voce@example.com' }}>" sh empacotar/linux/montar-deb.sh
+          sh empacotar/linux/montar-rpm.sh
+
+      - name: Versão portátil (.zip)
+        run: |
+          mkdir -p build/portatil/HONK && cp dist/index.html portatil/* build/portatil/HONK/
+          (cd build/portatil && zip -qr9 "../../saida/HONK-${HONK_VERSAO}-portatil.zip" HONK)
+
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/ }
+      - uses: actions/upload-artifact@v4
+        with: { name: pacotes-linux, path: "saida/*" }
+
+  windows:
+    name: Instalador do Windows
+    needs: montar
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - name: Compilar o lançador HONK.exe (sem console)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build\windows | Out-Null
+          & "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe" /nologo /target:winexe `
+            /win32icon:empacotar\icone\honk.ico /r:System.Windows.Forms.dll /out:build\windows\HONK.exe empacotar\windows\Lancador.cs
+      - name: Instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          $versao = if ($env:GITHUB_REF_TYPE -eq 'tag') { $env:GITHUB_REF_NAME.TrimStart('v') } else { (Get-Content VERSAO).Trim() }
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) { choco install innosetup -y --no-progress }
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc /Q "/DVersao=$versao" empacotar\windows\honk.iss
+      - uses: actions/upload-artifact@v4
+        with: { name: instalador-windows, path: "saida/*.exe" }
+
+  macos:
+    name: Aplicativo do macOS
+    needs: montar
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - name: HONK.app e .dmg
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSAO; fi
+          sh empacotar/macos/montar-app.sh
+      - uses: actions/upload-artifact@v4
+        with: { name: app-macos, path: "saida/*.dmg" }
+
+  publicar:
+    name: Publicar na página de Releases
+    if: github.ref_type == 'tag'
+    needs: [montar, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: arquivos, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: HONK! ${{ github.ref_name }}
+          files: |
+            arquivos/*.exe
+            arquivos/*.deb
+            arquivos/*.rpm
+            arquivos/*.dmg
+            arquivos/*.zip
+          body: |
+            ## Como instalar
+            | Sistema | Arquivo |
+            |---|---|
+            | **Windows 10/11** | `HONK-…-instalador-windows.exe` — Avançar, Avançar, Concluir. Cria o ícone na Área de Trabalho. |
+            | **Debian / Ubuntu / Mint** | `honk_…_all.deb` — dois cliques, ou `sudo apt install ./honk_…_all.deb` |
+            | **Fedora** | `honk-…noarch.rpm` — dois cliques, ou `sudo dnf install ./honk-…noarch.rpm` |
+            | **macOS** | `HONK-…-macos.dmg` — arraste para Aplicativos; na 1ª vez, botão direito > Abrir |
+            | **Sem instalar** | `HONK-…-portatil.zip` — descompacte e use o lançador do seu sistema |
+
+            O jogo abre numa janela própria do Edge/Chrome, sem terminal, e roda 100% offline.

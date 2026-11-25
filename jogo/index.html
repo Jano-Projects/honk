@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HONK!</title>
+<!--
+  HONK! — "Um ganso acordou com ódio"
+  ==================================
+  Esta é a CASCA da página. O conteúdo de verdade está destrinchado em:
+    css/estilo.css      moldura, menus, cartas, almanaque
+    sql/**.sql          o MOTOR do jogo: estado e TODAS as regras (DuckDB-WASM)
+    js/NN-*.js          entrada, desenho em xilogravura, som e o laço principal
+  Cada marcador @css / @sql / @js abaixo é substituído pelo ferramentas/montar.py,
+  que gera o arquivo único dist/index.html (é ele que vai nos instaladores).
+
+  Quem faz o quê
+    SQL: guarda todo o estado (mundos, mapas, ganso, inimigos, projéteis, lojas,
+         cartas), aplica as regras (movimento, colisão, combate, ondas, ciclos),
+         calcula o caminho dos inimigos e faz o RAYCASTING das paredes.
+    JavaScript: lê teclado/mouse/toque, manda NÚMEROS para o SQL e "imprime"
+         o que o banco devolve. Não conhece as regras: é prensa, controle e alto-falante.
+-->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3CclipPath id='folha'%3E%3Crect x='16' y='16' width='480' height='480' rx='88'/%3E%3C/clipPath%3E%3C/defs%3E%3Crect x='16' y='16' width='480' height='480' rx='88' fill='#ede0bd'/%3E%3Cg clip-path='url%28#folha%29'%3E%3Ccircle cx='300' cy='200' r='150' fill='#b8322a'/%3E%3Cg stroke='#1c1611' stroke-width='9' stroke-linecap='round'%3E%3Cpath d='M16 380 L120 500'/%3E%3Cpath d='M16 420 L90 505'/%3E%3Cpath d='M16 460 L60 510'/%3E%3Cpath d='M410 470 L500 380'/%3E%3Cpath d='M440 490 L500 430'/%3E%3C/g%3E%3Cpath d='M128 520 C 128 400, 196 330, 222 262 L 336 282 C 300 340, 262 410, 280 520 Z' fill='#fff8e6' stroke='#1c1611' stroke-width='20' stroke-linejoin='round'/%3E%3Cg fill='none' stroke='#1c1611' stroke-width='8' stroke-linecap='round'%3E%3Cpath d='M200 380 q 22 10 44 0'/%3E%3Cpath d='M188 430 q 26 12 52 0'/%3E%3Cpath d='M178 478 q 30 12 60 0'/%3E%3C/g%3E%3Ccircle cx='282' cy='196' r='104' fill='#fff8e6' stroke='#1c1611' stroke-width='20'/%3E%3Cpath d='M368 158 L 486 128 L 382 210 Z' fill='#e2583f' stroke='#1c1611' stroke-width='16' stroke-linejoin='round'/%3E%3Cpath d='M372 222 L 470 262 L 352 256 Z' fill='#e2583f' stroke='#1c1611' stroke-width='16' stroke-linejoin='round'/%3E%3Ccircle cx='318' cy='182' r='17' fill='#1c1611'/%3E%3Cpath d='M262 136 L 356 164' stroke='#1c1611' stroke-width='22' stroke-linecap='round'/%3E%3Cg stroke='#b8322a' stroke-width='8' stroke-linecap='round'%3E%3Cpath d='M214 214 L 262 268'/%3E%3Cpath d='M222 248 L 240 230'/%3E%3Cpath d='M236 262 L 254 244'/%3E%3C/g%3E%3C/g%3E%3Crect x='16' y='16' width='480' height='480' rx='88' fill='none' stroke='#1c1611' stroke-width='24'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&display=swap" rel="stylesheet">
+<!-- @css css/estilo.css -->
+</head>
+<body>
+
+<header>
+  <h1>HONK!</h1>
+  <p class="sub">um ganso acordou com ódio</p>
+  <div class="varal" aria-hidden="true">
+    <svg viewBox="0 0 100 14" preserveAspectRatio="none"><path d="M0 3 Q50 13 100 3" fill="none" stroke="#1c1611" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>
+    <div class="folhetos">
+      <div class="folheto">Parque<i></i></div>
+      <div class="folheto">Fazenda<i></i></div>
+      <div class="folheto">Feira<i></i></div>
+      <div class="folheto">Shopping<i></i></div>
+      <div class="folheto">Aeroporto<i></i></div>
+    </div>
+  </div>
+  <button class="btn-tela" id="btnTelaCheia" title="Tela cheia (F)">⛶ Tela cheia</button>
+</header>
+
+<div class="palco" id="palco">
+<div class="gabinete">
+  <canvas id="tela" width="640" height="400"></canvas>
+  <canvas id="grao" class="grao" width="640" height="400" aria-hidden="true"></canvas>
+  <div class="log" id="log"></div>
+  <div class="fps oculto" id="fps"></div>
+
+  <div class="tela" id="telaCarregando"><h2>Acordando o ganso...</h2><div class="ornamento"></div><p id="statusCarga">Baixando o banco de dados (DuckDB, ~9 MB na primeira vez).</p></div>
+
+  <div class="tela oculto" id="telaInicio">
+    <h2>Um ganso acordou com ódio</h2>
+    <div class="ornamento"></div>
+    <p>Ninguém sabe o motivo. Talvez o pão velho no lago. Talvez tenham sentado no banco dele.
+       Agora o parque, a fazenda, a feira, o shopping e o aeroporto vão pagar. E quando acabar, ele começa de novo.</p>
+    <p class="dica" id="recordeTxt"></p>
+    <p class="dica" id="diarioTxt"></p>
+    <div class="dificuldade" id="dificuldade" role="radiogroup" aria-label="Dificuldade"></div>
+    <p class="dica">Ao cair, suas migalhas viram moedas no ninho. Gaste-as aqui.</p>
+    <div class="loja" id="lojaInicio"></div>
+    <div class="botoes"><button class="grande" id="btnComecar">Ir descontar o ódio</button>
+      <button class="grande claro" id="btnDiario">Desafio do dia</button>
+      <button class="grande claro" id="btnAlmanaque" data-almanaque>Almanaque do Ganso</button></div>
+    <div class="ajuda-tela">
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> andar · <kbd>Shift</kbd> correr</span>
+      <span><kbd>←</kbd><kbd>→</kbd> ou mouse: virar</span>
+      <span><kbd>Espaço</kbd>/clique bicar · <kbd>E</kbd> HONK · <kbd>Q</kbd> pena</span>
+      <span><kbd>C</kbd>, <kbd>Ctrl</kbd> ou botão direito: esquiva (invencível)</span>
+      <span><kbd>V</kbd> câmera · <kbd>F</kbd> tela cheia · <kbd>P</kbd> pausa · <kbd>M</kbd> som · <kbd>H</kbd> almanaque</span>
+    </div>
+  </div>
+
+  <div class="tela oculto" id="telaEscolha">
+    <h2 id="escolhaTitulo">Onda limpa!</h2>
+    <p>O ódio cresce. Escolha como.</p>
+    <div class="cartas" id="cartas"></div>
+  </div>
+
+  <div class="tela oculto" id="telaMorte">
+    <h2>O ódio não bastou. Desta vez.</h2>
+    <div class="ornamento"></div>
+    <p id="morteTxt"></p>
+    <div class="placar" id="placar"></div>
+    <div class="loja" id="lojaMorte"></div>
+    <div class="botoes"><button class="grande" id="btnDeNovo">Voltar à luta</button>
+      <button class="grande claro" data-almanaque>Almanaque</button></div>
+  </div>
+
+  <div class="tela oculto" id="telaAlmanaque" role="dialog" aria-labelledby="almTitulo">
+    <h2 id="almTitulo">Almanaque do Ganso</h2>
+    <div class="ornamento"></div>
+    <div class="abas" role="tablist">
+      <button role="tab" data-aba="inimigos" aria-selected="true">Inimigos</button>
+      <button role="tab" data-aba="mundos" aria-selected="false">Mundos e ciclos</button>
+      <button role="tab" data-aba="comandos" aria-selected="false">Comandos</button>
+      <button role="tab" data-aba="poderes" aria-selected="false">Poderes</button>
+    </div>
+    <div class="livro" id="livro" role="tabpanel"></div>
+    <button class="grande" id="btnFecharAlmanaque">Voltar</button>
+    <p class="dica">Abra a qualquer hora fora da luta com <kbd>H</kbd>. <kbd>Esc</kbd> fecha.</p>
+  </div>
+
+  <div class="tela oculto" id="telaPausa"><h2>Pausa</h2><div class="ornamento"></div><p>Aperte P ou Esc para voltar.</p>
+    <button class="grande claro" data-almanaque>Almanaque do Ganso</button>
+    <div class="ajuda-tela">
+      <span><kbd>V</kbd> alterna 1ª e 3ª pessoa</span><span><kbd>F</kbd> tela cheia</span><span><kbd>M</kbd> som</span><span><kbd>I</kbd> mostra FPS</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="toque" id="toque">
+  <div>
+    <span></span><button data-k="KeyW">▲</button><span></span>
+    <button data-k="ArrowLeft">⟲</button><button data-k="KeyS">▼</button><button data-k="ArrowRight">⟳</button>
+  </div>
+  <div class="acao">
+    <button data-k="Space">BICAR</button><button data-k="KeyE">HONK</button><button data-k="KeyQ">PENA</button><button data-k="KeyC">ESQUIVA</button>
+  </div>
+</div>
+
+
+
+
+<!-- @sql sql-esquema = sql/esquema/ -->
+
+
+<!-- @sql sql-carregar-mundo = sql/regras/carregar-mundo.sql -->
+
+
+<!-- @sql sql-reiniciar = sql/regras/reiniciar.sql -->
+
+
+<!-- @sql sql-mover = sql/regras/mover.sql -->
+
+
+<!-- =====================================================================
+     SQL 5: ATAQUES DO GANSO
+     ===================================================================== -->
+<!-- @sql sql-bicar = sql/regras/bicar.sql -->
+
+<!-- @sql sql-honk = sql/regras/honk.sql -->
+
+<!-- @sql sql-esquiva = sql/regras/esquiva.sql -->
+
+<!-- @sql sql-perfeita = sql/regras/perfeita.sql -->
+
+<!-- @sql sql-pena = sql/regras/pena.sql -->
+
+
+<!-- =====================================================================
+     SQL 6: TICK  -  roda TODO quadro (o resto são eventos sob demanda)
+     ===================================================================== -->
+<!-- @sql sql-inimigos = sql/regras/inimigos.sql -->
+
+<!-- @sql sql-tick = sql/regras/tick.sql -->
+
+
+<!-- =====================================================================
+     SQL 7: EVENTOS  -  só rodam quando a view v_hud devolve o sinal
+     (f_ataque, f_mortos, ...). A DECISÃO é do SQL; o JS só obedece.
+     ===================================================================== -->
+
+<!-- @sql sql-ev-ataque = sql/eventos/ev-ataque.sql -->
+
+<!-- @sql sql-ev-tiro = sql/eventos/ev-tiro.sql -->
+
+<!-- @sql sql-ev-invoca = sql/eventos/ev-invoca.sql -->
+
+<!-- @sql sql-ev-proj = sql/eventos/ev-proj.sql -->
+
+<!-- @sql sql-ev-mortos = sql/eventos/ev-mortos.sql -->
+
+<!-- @sql sql-ev-morte = sql/eventos/ev-morte.sql -->
+
+<!-- @sql sql-ev-limpa = sql/eventos/ev-limpa.sql -->
+
+<!-- @sql sql-ev-onda = sql/eventos/ev-onda.sql -->
+
+<!-- @sql sql-ev-campo = sql/eventos/ev-campo.sql -->
+
+
+<!-- @sql sql-escolher = sql/menus/escolher.sql -->
+
+
+<!-- @sql sql-comprar-ouro = sql/menus/comprar-ouro.sql -->
+<!-- @sql sql-diario = sql/menus/diario.sql -->
+<!-- @sql sql-comprar = sql/menus/comprar.sql -->
+
+<!-- @sql sql-camera = sql/menus/camera.sql -->
+
+<!-- @sql sql-dificuldade = sql/menus/dificuldade.sql -->
+
+<!-- @sql sql-restaurar = sql/menus/restaurar.sql -->
+
+
+<!-- @sql sql-render = sql/visao/render.sql -->
+
+
+<!-- @sql sql-sprites = sql/visao/sprites.sql -->
+
+
+<!-- @sql sql-hud = sql/visao/hud.sql -->
+
+
+<!-- @sql sql-saida = sql/visao/saida.sql -->
+
+
+<!-- @sql sql-saida-leve = sql/visao/saida-leve.sql -->
+
+
+<!-- =====================================================================
+     JAVASCRIPT: prensa + controle + alto-falante
+     ===================================================================== -->
+<!-- @js js/ -->
+</body>
+</html>

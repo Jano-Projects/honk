@@ -1,0 +1,175 @@
+/* HONK! — folha de estilo da página (a moldura em volta do jogo, menus, almanaque, cartas).
+   O jogo em si é desenhado no <canvas> pelo JavaScript. */
+/* VOICE: folheto de cordel vendido na feira, impresso em xilogravura
+   IDEA: a página é uma banca de cordel; o jogo é a capa do folheto, impressa a cada quadro
+   PICTURE: a tela do jogo em tinta preta sobre papel colorido, com um único vermelho
+   COLOUR & TYPE: papel palha/rosa/azul-noite, tinta quase preta, vermelho de carimbo; Rye (tipo de madeira) + Special Elite (máquina de escrever)
+   LAYOUT: título com folhetos pendurados no cordel, a prensa (jogo) logo abaixo, ajuda em uma linha */
+:root { --papel:#ede0bd; --tinta:#1c1611; --destaque:#b8322a; --banca:#d9c9a0; }
+* { box-sizing:border-box; min-width:0; }
+body { margin:0; min-height:100vh; color:#1c1611; font:15px/1.5 "Special Elite", "Courier New", monospace;
+       background-color:var(--banca);
+       background-image:repeating-linear-gradient(90deg, rgba(60,40,10,.05) 0 2px, transparent 2px 9px),
+                        repeating-linear-gradient(0deg, rgba(60,40,10,.04) 0 1px, transparent 1px 7px);
+       display:flex; flex-direction:column; align-items:center; overflow-x:clip; }
+
+/* cabeçalho compacto: o jogo é que tem que ocupar a tela */
+header { width:min(98vw, 1800px); display:flex; align-items:center; gap:18px; margin:8px 0 8px; min-height:44px; }
+h1 { font-family:Rye, Georgia, serif; font-weight:400; font-size:clamp(26px,3.2vw,40px); line-height:1; margin:0; color:#1c1611;
+     text-shadow:2px 2px 0 #b8322a; letter-spacing:1px; white-space:nowrap; }
+.sub { font-size:clamp(12px,1.1vw,14px); flex:1 1 auto; }
+.varal { position:relative; width:clamp(150px,22vw,300px); height:46px; flex:none; }
+.varal svg { position:absolute; inset:0 0 auto 0; width:100%; height:14px; }
+.folhetos { position:absolute; inset:5px 2% 0 2%; display:flex; justify-content:space-around; }
+.folheto { width:clamp(40px,5vw,62px); height:38px; border:1.5px solid #1c1611; padding:3px 2px; text-align:center; font:9px/1.05 Rye, RyeLocal, serif;
+           box-shadow:2px 2px 0 #1c1611; transform-origin:50% 0; animation:balanca 4s ease-in-out infinite; }
+.folheto:nth-child(1) { background:#ede0bd; } .folheto:nth-child(2) { background:#efc3a6; animation-delay:-1.3s; }
+.folheto:nth-child(3) { background:#161f31; color:#ecdfbf; animation-delay:-2.6s; }
+.folheto i { display:block; height:14px; margin:3px auto 0; width:80%; border:1px solid currentColor;
+             background:repeating-linear-gradient(-45deg, currentColor 0 1px, transparent 1px 4px); }
+@keyframes balanca { 0%,100% { transform:rotate(-3deg); } 50% { transform:rotate(3deg); } }
+.btn-tela { font:14px Rye, RyeLocal, serif; padding:7px 14px; min-height:40px; border:2px solid #1c1611; background:#1c1611; color:#ede0bd;
+            cursor:pointer; box-shadow:3px 3px 0 #b8322a; white-space:nowrap; flex:none; }
+@media (max-width:720px) { .sub, .varal { display:none; } header { justify-content:space-between; } }
+
+/* o palco: o jogo ocupa o máximo da janela, mantendo 16:10 */
+.palco { width:100%; display:flex; justify-content:center; }
+.gabinete { position:relative; width:min(97vw, calc((100vh - 104px) * 1.6)); aspect-ratio:16/10; background:var(--papel);
+            border:5px solid #1c1611; outline:2px solid #1c1611; outline-offset:4px; box-shadow:10px 10px 0 rgba(28,22,17,.85); margin-bottom:18px; }
+.palco:fullscreen { background-color:var(--banca); align-items:center; }
+.palco:fullscreen .gabinete { width:min(100vw, calc(100vh * 1.6)); border-width:0; outline:0; box-shadow:none; margin:0; }
+canvas { width:100%; height:100%; display:block; cursor:crosshair; image-rendering:auto; }
+/* o grão do papel fica numa camada fixa, desenhada uma vez (não a cada quadro) */
+canvas.grao { position:absolute; inset:0; pointer-events:none; }
+body.jogando .folheto { animation-play-state:paused; }
+.log { position:absolute; left:1.6%; top:2.2%; font-family:"Special Elite", EliteLocal, monospace; font-size:clamp(10px,1.2vw,18px);
+       color:var(--tinta); pointer-events:none; max-width:58%; line-height:1.3;
+       text-shadow:-1px -1px 0 var(--papel), 1px -1px 0 var(--papel), -1px 1px 0 var(--papel), 1px 1px 0 var(--papel), 2px 2px 0 var(--papel); }
+.log div { animation:entraLog .25s ease-out; }
+.log div:last-child { color:var(--destaque); }
+@keyframes entraLog { from { transform:translateX(-12px); opacity:0; } }
+.fps.oculto { display:none; }
+.fps { position:absolute; right:1.4%; top:32%; font:11px "Special Elite", EliteLocal, monospace; color:var(--tinta); opacity:.6; pointer-events:none; }
+
+/* telas por cima do jogo: páginas de folheto */
+.tela { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:safe center; gap:7px; text-align:center;
+        padding:3% 5%; overflow:auto; color:var(--tinta);
+        background-color:color-mix(in srgb, var(--papel) 93%, transparent);
+        background-image:repeating-linear-gradient(-45deg, color-mix(in srgb, var(--tinta) 7%, transparent) 0 1px, transparent 1px 6px); }
+.tela h2 { font-family:Rye, RyeLocal, serif; font-weight:400; font-size:clamp(24px,3.6vw,56px); line-height:1.05; margin:0; color:var(--tinta);
+           text-shadow:3px 3px 0 var(--destaque); }
+/* as telas "caem" como uma página de folheto; as cartas são distribuídas uma a uma */
+.tela:not(.oculto) { animation:folha .35s ease-out; }
+.tela:not(.oculto) h2 { animation:carimba .45s cubic-bezier(.2,1.6,.4,1); }
+.tela:not(.oculto) .carta { animation:distribui .45s cubic-bezier(.2,1.3,.4,1) backwards; }
+.tela:not(.oculto) .carta:nth-child(2) { animation-delay:.08s; } .tela:not(.oculto) .carta:nth-child(3) { animation-delay:.16s; }
+@keyframes folha { from { opacity:0; transform:translateY(-14px) rotate(-.6deg); } }
+@keyframes carimba { from { transform:scale(1.8) rotate(-4deg); opacity:0; } }
+@keyframes distribui { from { transform:translateY(60px) rotate(8deg) scale(.8); opacity:0; } }
+.ajuda-tela { display:flex; flex-wrap:wrap; justify-content:center; gap:4px 14px; font-size:clamp(11px,1.2vw,14px); margin-top:4px; }
+.tela p { margin:0; max-width:640px; font-size:clamp(12px,1.6vw,16px); }
+.tela .dica { opacity:.75; font-size:clamp(11px,1.3vw,13px); }
+.ornamento { width:min(320px,70%); height:10px; color:var(--tinta);
+             background:radial-gradient(circle, currentColor 2px, transparent 2.5px) 50% 50% / 16px 10px repeat-x; }
+button.grande { margin-top:6px; font:400 clamp(15px,2vw,20px) Rye, RyeLocal, serif; padding:10px 26px; min-height:46px; cursor:pointer;
+                border:3px solid var(--tinta); background:var(--tinta); color:var(--papel); box-shadow:5px 5px 0 var(--destaque); }
+button.grande.claro { background:var(--papel); color:var(--tinta); }
+button:focus-visible { outline:3px solid var(--destaque); outline-offset:3px; }
+.oculto { display:none !important; }
+.botoes { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+/* placar do fim da partida: estatísticas em "manchetes" */
+.placar { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:6px 12px; width:min(100%, 720px); }
+.placar div { border-top:2px solid var(--tinta); padding:4px 2px 0; text-align:left; font-size:12.5px; }
+.placar b { font:400 22px/1 Rye, RyeLocal, serif; color:var(--destaque); display:block; }
+.loja .ouro { color:#b8860b; }
+.carta .combo { display:block; margin-top:4px; font:400 12px Rye, RyeLocal, serif; color:var(--destaque); animation:pulsa 0.9s ease-in-out infinite alternate; }
+@keyframes pulsa { from { transform:scale(1); } to { transform:scale(1.08); } }
+.loja h4 { font:400 15px Rye, RyeLocal, serif; margin:10px 0 4px; grid-column:1 / -1; }
+/* fontes locais (modo offline): usadas só se o Google Fonts não carregar */
+@font-face { font-family:RyeLocal; src:url(vendor/rye.woff2) format("woff2"); font-display:swap; }
+@font-face { font-family:EliteLocal; src:url(vendor/special-elite.woff2) format("woff2"); font-display:swap; }
+
+/* loja do ninho */
+.loja { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:6px; width:min(100%, 780px); margin-top:4px; }
+.loja > p { font-family:Rye, RyeLocal, serif; grid-column:1 / -1; }
+.item { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 12px; align-items:center; text-align:left;
+        border:2px solid var(--tinta); padding:6px 10px; background:color-mix(in srgb, var(--papel) 85%, var(--tinta)); }
+.item b { font-family:Rye, RyeLocal, serif; font-weight:400; font-size:clamp(12px,1.5vw,15px); }
+.item small { display:block; font-size:12px; opacity:.85; }
+.niveis { display:flex; gap:3px; margin-top:4px; }
+.niveis i { width:11px; height:7px; border:1.5px solid var(--tinta); }
+.niveis i.on { background:var(--destaque); }
+.item button { font:13px Rye, RyeLocal, serif; padding:6px 10px; min-height:38px; border:2px solid var(--tinta); background:var(--tinta);
+               color:var(--papel); cursor:pointer; white-space:nowrap; }
+.item button:disabled { opacity:.35; cursor:not-allowed; }
+.moedas { color:var(--destaque); }
+.dificuldade { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; }
+.dificuldade button { font:14px Rye, RyeLocal, serif; padding:6px 14px; min-height:38px; border:2px solid var(--tinta); background:transparent; color:var(--tinta); cursor:pointer; }
+.dificuldade button[aria-checked="true"] { background:var(--tinta); color:var(--papel); }
+
+/* cartas de poder: cada uma é um folheto */
+.cartas { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:clamp(8px,1.8vw,18px); width:min(100%, 780px); margin-top:8px; }
+.carta { font:inherit; color:#1c1611; border:3px solid #1c1611; cursor:pointer; padding:10px 10px 12px; min-height:44px;
+         display:flex; flex-direction:column; gap:6px; align-items:center; box-shadow:5px 5px 0 #1c1611; transition:transform .12s; }
+.carta:nth-child(1) { background:#f3e7c6; } .carta:nth-child(2) { background:#efc3a6; } .carta:nth-child(3) { background:#c9dcc0; }
+.carta.rara { outline:3px solid var(--destaque); outline-offset:-9px; }
+.carta:hover, .carta:focus-visible { transform:translateY(-5px) rotate(-1.5deg); }
+.carta .gravura { width:100%; height:46px; border:2px solid #1c1611; display:grid; place-items:center; font:26px Rye, RyeLocal, serif;
+                  background:repeating-linear-gradient(-45deg, rgba(28,22,17,.22) 0 1.5px, transparent 1.5px 5px); }
+.carta .tecla { font:12px "Special Elite", EliteLocal, monospace; }
+.carta b { font:400 clamp(13px,1.8vw,18px)/1.1 Rye, RyeLocal, serif; }
+.carta span { font-size:clamp(11px,1.4vw,14px); line-height:1.3; }
+.carta em { font-style:normal; font-size:11px; letter-spacing:1px; }
+@media (max-width:600px) { .cartas { grid-template-columns:1fr; } .carta .gravura { display:none; } }
+
+/* ALMANAQUE: o livreto de consulta (inimigos, mundos, comandos, poderes) */
+#telaAlmanaque { justify-content:flex-start; gap:8px; }
+.abas { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.abas button { font:400 clamp(13px,1.6vw,17px) Rye, RyeLocal, serif; padding:7px 16px; min-height:40px; border:2px solid var(--tinta);
+               background:transparent; color:var(--tinta); cursor:pointer; }
+.abas button[aria-selected="true"] { background:var(--tinta); color:var(--papel); box-shadow:3px 3px 0 var(--destaque); }
+.livro { width:min(100%, 1080px); text-align:left; }
+.livro h3 { font:400 clamp(17px,2.2vw,26px) Rye, RyeLocal, serif; margin:14px 0 6px; border-bottom:2px solid var(--tinta); padding-bottom:3px; }
+.livro h3 small { font:13px "Special Elite", EliteLocal, monospace; opacity:.75; margin-left:8px; }
+.livro .nota { font-size:13px; opacity:.8; margin:4px 0 8px; }
+.bestas { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:10px; }
+.besta { border:2px solid var(--tinta); padding:8px 10px; display:grid; grid-template-columns:72px 1fr; gap:4px 10px;
+         background:color-mix(in srgb, var(--papel) 85%, var(--tinta)); box-shadow:4px 4px 0 var(--tinta); }
+.besta.chefe { box-shadow:4px 4px 0 var(--destaque); outline:2px solid var(--destaque); outline-offset:-6px; }
+.besta canvas { width:72px; height:72px; image-rendering:pixelated; border:2px solid var(--tinta); background:var(--papel); }
+.besta b { font:400 16px/1.1 Rye, RyeLocal, serif; display:block; }
+.besta .selo { display:inline-block; font:11px "Special Elite", EliteLocal, monospace; border:1.5px solid currentColor; padding:0 4px; margin:2px 4px 0 0; }
+.besta .selo.vermelho { color:var(--destaque); }
+.besta .stats { grid-column:1 / -1; display:grid; grid-template-columns:auto 1fr auto; gap:2px 8px; align-items:center; font-size:12px; }
+.besta .stats i { height:6px; border:1.5px solid var(--tinta); position:relative; }
+.besta .stats i::after { content:''; position:absolute; inset:0; width:var(--f); background:var(--destaque); }
+.besta p { grid-column:1 / -1; font-size:12.5px; margin:0; max-width:none; line-height:1.35; }
+.besta q { font-style:italic; opacity:.85; }
+.mundos { display:grid; gap:10px; }
+.trilha { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:6px; }
+.trilha div { border:2px solid var(--tinta); padding:6px; font-size:12px; line-height:1.35; min-height:70px; }
+.trilha div.boss { background:var(--tinta); color:var(--papel); }
+.trilha div b { font:400 15px Rye, RyeLocal, serif; display:block; }
+.tabela { width:100%; border-collapse:collapse; font-size:14px; }
+.tabela th, .tabela td { border-bottom:1.5px solid color-mix(in srgb, var(--tinta) 35%, transparent); padding:6px 8px; text-align:left; vertical-align:top; }
+.tabela th { font:400 14px Rye, RyeLocal, serif; border-bottom:2px solid var(--tinta); }
+.tabela td:first-child { white-space:nowrap; }
+.livro kbd, .ajuda-tela kbd { white-space:nowrap; }
+@media (max-width:700px) { .trilha { grid-template-columns:1fr 1fr; } }
+
+/* controles de toque e ajuda */
+.toque { display:none; width:min(96vw,1800px); justify-content:space-between; margin-top:12px; gap:10px; user-select:none; }
+.toque div { display:grid; grid-template-columns:repeat(3,52px); gap:6px; align-content:start; }
+.toque button { height:56px; font:15px Rye, RyeLocal, serif; border:3px solid #1c1611; background:#ede0bd; color:#1c1611; touch-action:none; box-shadow:3px 3px 0 #1c1611; }
+.toque .acao { grid-template-columns:repeat(2,minmax(70px,84px)); }
+.toque .acao button { font-size:13px; }
+.toque .acao button { background:#1c1611; color:#ede0bd; }
+@media (hover:none) and (pointer:coarse) { .toque { display:flex; } }
+body:not(.jogando) .toque { display:none !important; }     /* botões de toque só durante a luta */
+/* tela pequena (celular em pé, janela baixa): menus ocupam a janela inteira, não só a caixinha do jogo */
+@media (max-width:720px), (max-height:520px) {
+  .tela { position:fixed; z-index:50; padding:14px 12px 24px; }
+  .tela h2 { font-size:clamp(22px,7vw,40px); }
+}
+kbd { font:13px Rye, RyeLocal, serif; background:var(--tinta); color:var(--papel); padding:1px 7px; margin-right:2px; }
+@media (prefers-reduced-motion:reduce) { .carta { transition:none; } .tela, .tela *, .folheto, .log div { animation:none !important; } }

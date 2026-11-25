@@ -1,0 +1,70 @@
+#!/bin/sh
+# ==========================================================================
+#  HONK! — lançador instalado (Linux). Chamado pelo ícone do menu de apps.
+#  Abre o jogo numa JANELA PRÓPRIA do navegador (modo aplicativo), sem
+#  terminal e sem barra de endereço, com um perfil só do jogo.
+#
+#  1) Chrome, Chromium, Brave, Edge ou Vivaldi instalados normalmente:
+#     abre o jogo DIRETO DO DISCO (nenhum servidor, nenhum processo extra).
+#  2) Chromium "snap" (padrão no Ubuntu) ou só o Firefox: o snap não enxerga
+#     /usr/share, então sobe um servidor local invisível (Python), abre o jogo
+#     nele e desliga o servidor quando a janela do jogo fecha.
+#
+#  HONK_MOSTRAR=1 honk   -> só mostra o comando que seria usado (diagnóstico)
+# ==========================================================================
+JOGO="${HONK_JOGO:-/usr/share/honk}"
+DADOS="${XDG_DATA_HOME:-$HOME/.local/share}/honk"
+OPCOES="--no-first-run --no-default-browser-check --disable-extensions --start-maximized
+ --ignore-gpu-blocklist --enable-gpu-rasterization --enable-zero-copy
+ --disable-background-timer-throttling --disable-renderer-backgrounding
+ --disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required"
+
+avisar() {   # mensagem em janela (sem terminal não há onde imprimir)
+  if command -v zenity >/dev/null 2>&1; then zenity --warning --title="HONK!" --text="$1" 2>/dev/null
+  elif command -v kdialog >/dev/null 2>&1; then kdialog --title "HONK!" --sorry "$1" 2>/dev/null
+  elif command -v notify-send >/dev/null 2>&1; then notify-send "HONK!" "$1"
+  else echo "HONK!: $1" >&2; fi
+}
+
+NAV=""; SNAP=""
+for b in google-chrome google-chrome-stable chromium chromium-browser brave-browser brave microsoft-edge microsoft-edge-stable vivaldi vivaldi-stable; do
+  caminho="$(command -v "$b" 2>/dev/null)" || continue
+  real="$(readlink -f "$caminho")"
+  # é snap? (/snap/bin/..., link para /usr/bin/snap, ou script do Ubuntu que chama o snap)
+  if case "$caminho$real" in */snap/*|*/bin/snap) true ;; *) false ;; esac \
+     || { [ "$(wc -c < "$real" 2>/dev/null || echo 0)" -lt 65536 ] && grep -qs '/snap/' "$real"; }; then
+    [ -z "$SNAP" ] && SNAP="$b"
+  else
+    NAV="$caminho"; break
+  fi
+done
+
+# ---------- 1) direto do disco ----------
+if [ -n "$NAV" ]; then
+  mkdir -p "$DADOS/perfil"
+  set -- --app="file://$JOGO/index.html" --user-data-dir="$DADOS/perfil" --allow-file-access-from-files $OPCOES
+  [ -n "$HONK_MOSTRAR" ] && { echo "$NAV $*"; exit 0; }
+  exec "$NAV" "$@"
+fi
+
+# ---------- 2) servidor local invisível ----------
+if ! command -v python3 >/dev/null 2>&1; then
+  avisar "O HONK! precisa de um navegador como Google Chrome, Chromium, Brave ou Edge (ou do Python 3). Instale um deles e abra de novo."
+  exit 1
+fi
+PORTA=8642          # porta fixa: o progresso salvo fica ligado ao endereço
+if [ -n "$HONK_MOSTRAR" ]; then echo "servidor python3 em $JOGO na porta $PORTA + ${SNAP:-xdg-open}"; exit 0; fi
+python3 "$JOGO/servidor.py" "$JOGO" "$PORTA" 28800 &      # desliga sozinho em 8 h, se ninguém desligar antes
+SERV=$!
+trap 'kill $SERV 2>/dev/null' EXIT INT TERM
+sleep 0.6
+URL="http://127.0.0.1:$PORTA/"
+if [ -n "$SNAP" ]; then
+  PERFIL="$HOME/snap/$(echo "$SNAP" | sed 's/-browser$//')/common/honk-perfil"    # chromium-browser -> ~/snap/chromium
+  mkdir -p "$PERFIL"
+  # shellcheck disable=SC2086
+  "$SNAP" --app="$URL" --user-data-dir="$PERFIL" $OPCOES       # espera a janela fechar
+else
+  xdg-open "$URL" >/dev/null 2>&1
+  wait $SERV                                                  # navegador comum: o servidor segue até o tempo limite
+fi

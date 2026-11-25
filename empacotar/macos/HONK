@@ -1,0 +1,26 @@
+#!/bin/sh
+# ==========================================================================
+#  HONK! — lançador do macOS (fica em HONK.app/Contents/MacOS/HONK)
+#  Abre o jogo numa janela própria do Chrome, Edge, Brave ou Chromium, em modo
+#  aplicativo, direto dos arquivos do .app (sem Terminal, sem servidor).
+#  Sem nenhum desses navegadores: sobe um servidor local (Perl, que vem no
+#  macOS) e abre no Safari; o HONK! fica no Dock até você sair dele.
+# ==========================================================================
+RES="$(cd "$(dirname "$0")/../Resources" && pwd)"
+JOGO="$RES/jogo"
+PERFIL="$HOME/Library/Application Support/HONK/perfil"
+mkdir -p "$PERFIL"
+URL="file://$(printf '%s' "$JOGO/index.html" | sed 's/ /%20/g')"
+for nome in "Google Chrome" "Microsoft Edge" "Brave Browser" "Chromium" "Vivaldi"; do
+  for pasta in ${HONK_APPS:-/Applications "$HOME/Applications"}; do
+    if [ -d "$pasta/$nome.app" ]; then
+      exec open -na "$pasta/$nome.app" --args --app="$URL" --user-data-dir="$PERFIL" \
+        --allow-file-access-from-files --no-first-run --no-default-browser-check --disable-extensions \
+        --start-maximized --ignore-gpu-blocklist --enable-gpu-rasterization --enable-zero-copy \
+        --disable-background-timer-throttling --disable-renderer-backgrounding \
+        --disable-backgrounding-occluded-windows --autoplay-policy=no-user-gesture-required
+    fi
+  done
+done
+# plano B: Safari + servidor local (o Safari não abre o motor direto do disco)
+exec /usr/bin/perl "$JOGO/servidor.pl" 8642 "open %URL%"
