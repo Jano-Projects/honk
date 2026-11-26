@@ -219,7 +219,8 @@ jobs:
       - name: Abrir o .dmg, copiar para Aplicativos e conferir
         run: |
           hdiutil attach pacotes/*.dmg -mountpoint /Volumes/HONK -nobrowse -quiet
-          cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/" 2>/dev/null || { mkdir -p "$HOME/Applications"; cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/"; }
+          mkdir -p "$HOME/Applications"        # sem a pasta, o cp -R criaria "Applications" com o conteúdo do app
+          cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/"
           hdiutil detach /Volumes/HONK -quiet
           APP="$HOME/Applications/HONK.app/Contents"
           for f in Info.plist MacOS/HONK Resources/honk.icns Resources/jogo/index.html Resources/jogo/vendor/duckdb-eh.wasm; do
