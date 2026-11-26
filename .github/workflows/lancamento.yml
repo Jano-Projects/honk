@@ -31,8 +31,8 @@ jobs:
     name: Montar, testar e empacotar (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
 
       - name: Versão (da tag, ou do arquivo VERSAO)
@@ -73,11 +73,11 @@ jobs:
           mkdir -p build/portatil/HONK && cp dist/index.html portatil/* build/portatil/HONK/
           (cd build/portatil && zip -qr9 "../../saida/HONK-${HONK_VERSAO}-portatil.zip" HONK)
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: dist, path: dist/ }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: pacotes-linux, path: "saida/*" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: notas, path: notas.md }
 
   windows:
@@ -85,8 +85,8 @@ jobs:
     needs: montar
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with: { name: dist, path: dist }
       - name: Compilar o lançador HONK.exe (sem console)
         shell: pwsh
@@ -102,7 +102,7 @@ jobs:
           $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
           if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           & $iscc /Q "/DVersao=$versao" empacotar\windows\honk.iss
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: instalador-windows, path: "saida/*.exe" }
 
   macos:
@@ -114,14 +114,14 @@ jobs:
     outputs:
       ok: ${{ steps.fim.outputs.ok }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with: { name: dist, path: dist }
       - name: HONK.app e .dmg
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSAO; fi
           sh empacotar/macos/montar-app.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: { name: app-macos, path: "saida/*.dmg" }
       - id: fim
         run: echo "ok=true" >> "$GITHUB_OUTPUT"
@@ -141,7 +141,7 @@ jobs:
           - { nome: "Ubuntu (mais recente)", imagem: "ubuntu:rolling", pacote: deb }
           - { nome: "Fedora (mais recente)", imagem: "fedora:latest", pacote: rpm }
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: pacotes-linux, path: pacotes }
       - name: Instalar o pacote
         run: |
@@ -184,7 +184,7 @@ jobs:
     needs: windows
     runs-on: windows-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: instalador-windows, path: pacotes }
       - name: Instalar (silencioso, só para este usuário), conferir e desinstalar
         shell: pwsh
@@ -214,7 +214,7 @@ jobs:
     outputs:
       ok: ${{ steps.fim.outputs.ok }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { name: app-macos, path: pacotes }
       - name: Abrir o .dmg, copiar para Aplicativos e conferir
         run: |
@@ -245,7 +245,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with: { path: arquivos, merge-multiple: true }
       - name: Somas de conferência (SHA256SUMS.txt)
         run: |
@@ -254,7 +254,7 @@ jobs:
           [ "${{ needs.homologar-macos.outputs.ok }}" = true ] || rm -f *.dmg     # .dmg só se foi homologado
           sha256sum *.exe *.deb *.rpm *.dmg *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: HONK! ${{ github.ref_name }}
           body_path: arquivos/notas.md
