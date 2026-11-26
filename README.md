@@ -122,7 +122,8 @@ jogo/                       o código-fonte, destrinchado
 └── js/                     00-base … 14-partida, em ordem de execução
 ferramentas/
 ├── montar.py               junta tudo em dist/index.html (e serve em modo desenvolvimento)
-├── baixar-motor.sh         baixa o DuckDB-WASM e as fontes para vendor/
+├── baixar-motor.sh         monta vendor/: o módulo do motor (de motor/) + workers, .wasm e fontes
+├── motor/                  módulo do DuckDB-WASM com o apache-arrow dentro (e o gerar.sh dele)
 ├── notas-da-versao.py      texto da página de Releases, tirado do CHANGELOG.md
 └── configurar-github.sh    proteções, segurança e rótulos do repositório no GitHub
 testes/                     testes das regras SQL + robôs (caçador de bugs e de equilíbrio)

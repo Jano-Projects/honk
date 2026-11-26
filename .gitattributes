@@ -5,3 +5,5 @@
 *.png  binary
 *.ico  binary
 *.icns binary
+# módulo do motor gerado pelo esbuild: fora das estatísticas de linguagem e dos diffs
+ferramentas/motor/duckdb-browser.mjs -diff linguist-generated

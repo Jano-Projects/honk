@@ -57,11 +57,21 @@ jobs:
           python3 -m unittest discover -s testes -v
           cd testes && python3 robo_bugs.py 1 1500
 
+      - name: Abrir o jogo no navegador, direto do disco (dist/)
+        run: |
+          pip install playwright
+          python3 testes/fumaca_navegador.py
+
       - name: Pacotes .deb e .rpm
         run: |
           sudo apt-get update -q && sudo apt-get install -y -q rpm
           HONK_MANTENEDOR="Victor H. Correa <${{ vars.EMAIL_MANTENEDOR || 'voce@example.com' }}>" sh empacotar/linux/montar-deb.sh
           sh empacotar/linux/montar-rpm.sh
+
+      - name: Abrir o jogo de dentro do .deb (como fica instalado)
+        run: |
+          dpkg-deb -x saida/honk_*_all.deb /tmp/instalado
+          HONK_PAGINA=/tmp/instalado/usr/share/honk/index.html python3 testes/fumaca_navegador.py
 
       - name: Aplicativo do macOS em .zip (HONK.app, montado aqui mesmo)
         run: |

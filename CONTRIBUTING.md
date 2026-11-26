@@ -20,6 +20,7 @@ Falhas de segurança seguem a [política de segurança](SECURITY.md), e não vã
    ```bash
    python3 -m unittest discover -s testes -v      # regras SQL (segundos)
    cd testes && python3 robo_bugs.py 1 1500       # caçador de bugs (se mexeu em regras)
+   python3 testes/fumaca_navegador.py             # abre o jogo num Chrome, do disco (pip install playwright)
    ```
 4. Atualize o `CHANGELOG.md` e a documentação que o seu ajuste afeta. O modelo de *pull request* tem a lista.
 5. O *pull request* só pode ser mesclado com a verificação **Testes das regras SQL** aprovada. A mesclagem é sempre por *squash* (um commit por pull request), e o ramo é apagado em seguida: o repositório mantém só a `main`.

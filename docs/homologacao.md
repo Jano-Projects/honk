@@ -21,8 +21,12 @@ a versão não é publicada.
 
 A fila de máquinas Mac do GitHub às vezes não anda. Por isso o macOS é **opcional** na publicação: o `.zip` com o `HONK.app` é montado no Linux e sai sempre; o `.dmg` só entra na release quando o Mac conseguiu montá-lo e homologá-lo. Linux e Windows são obrigatórios.
 
+Antes disso, ainda na montagem, o [teste de fumaça](../testes/fumaca_navegador.py) abre o jogo num
+Chrome de verdade, **direto do disco**, duas vezes: a versão montada (`dist/`) e a que sai de dentro do
+`.deb`. Ele espera o motor DuckDB carregar e começa uma partida; qualquer erro de JavaScript reprova.
+
 A cada envio para a `main` e em cada pull request, o workflow [Testes](../.github/workflows/testes.yml)
-roda os testes das regras SQL e uma rodada curta do caçador de bugs.
+roda os testes das regras SQL, uma rodada curta do caçador de bugs e o mesmo teste de fumaça.
 
 Para homologar sem publicar: aba **Actions › Lançamento › Run workflow**. O resumo da execução
 traz uma linha por plataforma, e os instaladores ficam em *Artifacts*.

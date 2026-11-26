@@ -1,5 +1,14 @@
 # Histórico de versões
 
+## 1.0.1 — 2026-11-26
+
+### Correções
+- **O jogo instalado não abria**: parava em "Acordando o ganso..." com o erro `Failed to resolve module specifier "apache-arrow"`. Os instaladores da 1.0.0 levavam a versão do motor DuckDB-WASM que depende de outro pacote (`apache-arrow`) e só funciona com servidor. Agora o motor vai num arquivo só, com tudo dentro (`ferramentas/motor/`), e abre direto do disco em todos os sistemas.
+- **100% offline de verdade**: a página não chama mais as fontes do Google; Rye e Special Elite vêm sempre de dentro do jogo.
+
+### Testes
+- Novo teste de fumaça (`testes/fumaca_navegador.py`): abre o jogo num Chrome de verdade, direto do disco, e começa uma partida. Roda a cada envio e, no lançamento, também com o jogo extraído do `.deb`. Foi o que faltou para pegar o problema acima antes da 1.0.0.
+
 ## 1.0.0 — 2026-11-25
 
 Primeira versão pública.

@@ -6,6 +6,7 @@
 
 - [ ] `python3 -m unittest discover -s testes -v` passou
 - [ ] `cd testes && python3 robo_bugs.py 1 1500` passou (se mexeu em regras SQL)
+- [ ] `python3 testes/fumaca_navegador.py` passou (abre o jogo do disco num Chrome)
 - [ ] Joguei pelo menos uma partida com `python3 ferramentas/montar.py --servir`
 - [ ] Testei no Windows / Linux / macOS (diga qual e com qual navegador)
 

@@ -1,5 +1,5 @@
 # HONK! — a cada envio e pull request: monta o jogo e roda os testes das regras SQL
-# e uma rodada curta do caçador de bugs. É a verificação obrigatória da main.
+# e uma rodada curta do caçador de bugs, e abre o jogo num Chrome de verdade. É a verificação obrigatória da main.
 name: Testes
 
 on:
@@ -22,9 +22,15 @@ jobs:
         with: { python-version: "3.12" }
       - name: DuckDB para Python
         run: pip install duckdb
+      - name: Baixar o motor DuckDB e as fontes
+        run: sh ferramentas/baixar-motor.sh
       - name: Montar o jogo (dist/)
         run: python3 ferramentas/montar.py
       - name: Testes das regras
         run: python3 -m unittest discover -s testes -v
       - name: Caçador de bugs (rodada curta)
         run: cd testes && python3 robo_bugs.py 1 800
+      - name: Abrir o jogo no navegador, direto do disco
+        run: |
+          pip install playwright
+          python3 testes/fumaca_navegador.py
