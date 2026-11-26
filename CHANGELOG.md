@@ -1,8 +1,25 @@
 # Histórico de versões
 
-## 1.0.0 — primeira versão pública
+## 1.0.0 — 2026-11-25
 
-O jogo, do protótipo em SQLite até aqui, em uma linha por etapa:
+Primeira versão pública.
+
+### O jogo
+- **Um ganso acordou com ódio**: cinco lugares por ciclo (Parque, Fazenda, Feira, Shopping e Aeroporto), cinco ondas em cada um e um chefe a cada cinco ondas.
+- **Ciclos sem fim**: depois do Airbus, o ganso volta ao Parque, e os inimigos crescem conforme a força dele. Cartas e loja do ninho têm teto; depois disso, o limite é a sua habilidade.
+- **Combate**: bicada com mira magnética, HONK, pena, esquiva invencível, esquiva perfeita com câmera lenta e combos de cartas.
+- **Progressão**: loja do ninho, Penas de Ouro, desafio do dia igual para todos e um ganso que muda de visual a cada ciclo.
+- **Almanaque do Ganso** (tecla H): inimigos, mundos, comandos e poderes.
+
+### Instalação
+- Instaladores para **Windows** (.exe), **Debian/Ubuntu** (.deb), **Fedora** (.rpm) e **macOS** (.zip com o HONK.app e, quando o GitHub tem um Mac livre, .dmg), além da versão portátil (.zip). O ícone abre o jogo numa janela própria, sem terminal, e tudo roda offline.
+- Cada instalador é instalado, conferido e removido automaticamente nas cinco plataformas antes da publicação. A página de Releases traz o `SHA256SUMS.txt` para conferir os arquivos.
+
+### Repositório
+- Código destrinchado em `jogo/sql`, `jogo/js` e `jogo/css`, com montador, testes das regras SQL e robôs caçadores de bugs e de equilíbrio.
+- Documentação (índice, arquitetura, desenvolvimento e homologação), modelos de issue e de pull request, política de segurança, como contribuir, código de conduta e atualização mensal das *actions* pelo Dependabot.
+
+### Como chegamos aqui
 
 - **Demo em texto (SQLite)** — a prova de que dá para escrever as regras de um roguelite em SQL.
 - **Primeira pessoa no DuckDB-WASM** — raycasting feito por uma consulta SQL, no navegador.

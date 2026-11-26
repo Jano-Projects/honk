@@ -1,0 +1,40 @@
+name: Bug no jogo ou equilíbrio
+description: Algo errado dentro da partida, ou um trecho difícil ou fácil demais
+labels: ["jogo"]
+body:
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo
+      options:
+        - Bug (algo que não deveria acontecer)
+        - Equilíbrio (difícil ou fácil demais)
+    validations:
+      required: true
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do HONK!
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: onde
+    attributes:
+      label: Onde
+      description: Ciclo, mundo e onda, como aparecem no rodapé. Diga também a dificuldade e se era o desafio do dia.
+      placeholder: "Ciclo 2 · Feira · onda 3 · Normal"
+    validations:
+      required: true
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que aconteceu. Prints ou um vídeo curto ajudam muito.
+    validations:
+      required: true
+  - type: textarea
+    id: cartas
+    attributes:
+      label: Cartas e compras
+      description: Os poderes que o ganso tinha e o que você comprou na loja do ninho e com Penas de Ouro, se lembrar.

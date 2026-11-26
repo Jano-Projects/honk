@@ -1,0 +1,16 @@
+name: Ideia
+description: Um inimigo, um poder, um mundo ou uma melhoria
+labels: ["ideia"]
+body:
+  - type: textarea
+    id: ideia
+    attributes:
+      label: A ideia
+      description: O que você gostaria de ver no jogo.
+    validations:
+      required: true
+  - type: textarea
+    id: porque
+    attributes:
+      label: Por que deixaria o jogo melhor
+      description: Que situação ela resolve ou que graça ela traz.

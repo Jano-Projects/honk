@@ -1,0 +1,22 @@
+name: Dependabot
+
+# Liga a mesclagem automática nos pedidos do Dependabot. A mesclagem só acontece depois que as
+# verificações obrigatórias da main passarem (regra "Proteção da main"), e o ramo é apagado em seguida.
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  mesclar:
+    name: Mesclar quando os testes passarem
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ligar a mesclagem automática
+        run: gh pr merge --auto --squash "$PR"
+        env:
+          PR: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ github.token }}

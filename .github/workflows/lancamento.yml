@@ -5,10 +5,15 @@
 #    1. monta o jogo (dist/), baixa o motor DuckDB e roda os testes das regras SQL
 #    2. gera os pacotes Linux (.deb e .rpm) e a versão portátil (.zip)
 #    3. gera o instalador do Windows (.exe, Inno Setup) numa máquina Windows
-#    4. gera o aplicativo do macOS (.dmg) numa máquina Mac
-#    5. publica tudo na página de Releases do GitHub
-#  Também dá para rodar à mão (aba Actions > Lançamento > Run workflow): aí só gera
-#  os arquivos (ficam em "Artifacts"), sem publicar.
+#    4. gera o aplicativo do macOS: o .zip com o HONK.app sai sempre (montado no
+#       Linux); o .dmg, quando o GitHub tem uma máquina Mac livre. A fila de Macs
+#       do GitHub às vezes não anda: nesse caso a versão sai sem o .dmg, nunca trava.
+#    5. homologa: instala cada pacote num sistema limpo (Debian, Ubuntu, Fedora,
+#       Windows e macOS), confere os arquivos e o lançador e desinstala
+#    6. publica tudo na página de Releases, com as notas tiradas do CHANGELOG.md
+#       (ferramentas/notas-da-versao.py) e o SHA256SUMS.txt
+#  Também dá para rodar à mão (aba Actions > Lançamento > Run workflow): aí gera
+#  e homologa os arquivos (ficam em "Artifacts"), sem publicar.
 # ==========================================================================
 name: Lançamento
 
@@ -17,8 +22,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Só leitura por padrão; o job "publicar" pede a escrita de que precisa.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   montar:
@@ -31,8 +37,13 @@ jobs:
 
       - name: Versão (da tag, ou do arquivo VERSAO)
         run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSAO; fi
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            [ "${GITHUB_REF_NAME#v}" = "$(cat VERSAO)" ] || { echo "::error::A tag ${GITHUB_REF_NAME} não bate com o arquivo VERSAO ($(cat VERSAO))."; exit 1; }
+          fi
           echo "HONK_VERSAO=$(cat VERSAO)" >> "$GITHUB_ENV"
+
+      - name: Notas da versão (a seção do CHANGELOG.md precisa existir)
+        run: python3 ferramentas/notas-da-versao.py "$HONK_VERSAO" > notas.md
 
       - name: Baixar o motor DuckDB e as fontes
         run: sh ferramentas/baixar-motor.sh
@@ -52,6 +63,11 @@ jobs:
           HONK_MANTENEDOR="Victor H. Correa <${{ vars.EMAIL_MANTENEDOR || 'voce@example.com' }}>" sh empacotar/linux/montar-deb.sh
           sh empacotar/linux/montar-rpm.sh
 
+      - name: Aplicativo do macOS em .zip (HONK.app, montado aqui mesmo)
+        run: |
+          sh empacotar/macos/montar-app.sh
+          (cd saida && zip -qry9 "HONK-${HONK_VERSAO}-macos.zip" HONK.app && rm -rf HONK.app)
+
       - name: Versão portátil (.zip)
         run: |
           mkdir -p build/portatil/HONK && cp dist/index.html portatil/* build/portatil/HONK/
@@ -61,6 +77,8 @@ jobs:
         with: { name: dist, path: dist/ }
       - uses: actions/upload-artifact@v4
         with: { name: pacotes-linux, path: "saida/*" }
+      - uses: actions/upload-artifact@v4
+        with: { name: notas, path: notas.md }
 
   windows:
     name: Instalador do Windows
@@ -88,9 +106,13 @@ jobs:
         with: { name: instalador-windows, path: "saida/*.exe" }
 
   macos:
-    name: Aplicativo do macOS
+    name: Aplicativo do macOS (.dmg, opcional)
     needs: montar
     runs-on: macos-latest
+    timeout-minutes: 25
+    continue-on-error: true      # sem Mac livre no GitHub, a versão sai só com o .zip do macOS
+    outputs:
+      ok: ${{ steps.fim.outputs.ok }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -101,32 +123,145 @@ jobs:
           sh empacotar/macos/montar-app.sh
       - uses: actions/upload-artifact@v4
         with: { name: app-macos, path: "saida/*.dmg" }
+      - id: fim
+        run: echo "ok=true" >> "$GITHUB_OUTPUT"
+
+  # ---------------- homologação: instalar, conferir e remover em sistemas limpos ----------------
+  homologar-linux:
+    name: Homologação · ${{ matrix.nome }}
+    needs: montar
+    runs-on: ubuntu-latest
+    container: ${{ matrix.imagem }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nome: "Debian (estável)", imagem: "debian:stable", pacote: deb }
+          - { nome: "Ubuntu (LTS)", imagem: "ubuntu:latest", pacote: deb }
+          - { nome: "Ubuntu (mais recente)", imagem: "ubuntu:rolling", pacote: deb }
+          - { nome: "Fedora (mais recente)", imagem: "fedora:latest", pacote: rpm }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: pacotes-linux, path: pacotes }
+      - name: Instalar o pacote
+        run: |
+          if [ "${{ matrix.pacote }}" = deb ]; then
+            apt-get update -q && apt-get install -y -q --no-install-recommends curl ./pacotes/honk_*_all.deb
+          else
+            dnf install -y -q --setopt=install_weak_deps=False curl ./pacotes/honk-*.noarch.rpm
+          fi
+      - name: Conferir arquivos, ícone e atalho do menu
+        run: |
+          for f in /usr/bin/honk /usr/share/honk/index.html /usr/share/honk/servidor.py \
+                   /usr/share/honk/vendor/duckdb-eh.wasm /usr/share/honk/vendor/duckdb-mvp.wasm \
+                   /usr/share/honk/vendor/duckdb-browser.mjs /usr/share/honk/vendor/rye.woff2 \
+                   /usr/share/applications/honk.desktop /usr/share/icons/hicolor/256x256/apps/honk.png; do
+            [ -s "$f" ] || { echo "::error::faltou $f"; exit 1; }
+          done
+          grep -q '^Exec=honk' /usr/share/applications/honk.desktop
+          grep -q '^Terminal=false' /usr/share/applications/honk.desktop
+      - name: Lançador escolhe o caminho certo
+        run: |
+          # o contêiner não tem navegador (as recomendações não foram instaladas): deve cair no servidor local
+          HONK_MOSTRAR=1 honk | tee escolha.txt
+          grep -q "servidor python3" escolha.txt
+      - name: Servidor local entrega o jogo e o motor
+        run: |
+          python3 /usr/share/honk/servidor.py /usr/share/honk 8642 60 &
+          sleep 1
+          curl -fsS http://127.0.0.1:8642/ | grep -q "HONK"
+          curl -fsSI http://127.0.0.1:8642/vendor/duckdb-eh.wasm | grep -qi "application/wasm"
+      - name: Desinstalar
+        run: |
+          if [ "${{ matrix.pacote }}" = deb ]; then apt-get remove -y -q honk; else dnf remove -y -q honk; fi
+          [ ! -e /usr/share/honk/index.html ] && [ ! -e /usr/bin/honk ]
+      - name: Resumo
+        if: always()
+        run: echo "| ${{ matrix.nome }} | ${{ job.status }} |" >> "$GITHUB_STEP_SUMMARY"
+
+  homologar-windows:
+    name: Homologação · Windows
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: instalador-windows, path: pacotes }
+      - name: Instalar (silencioso, só para este usuário), conferir e desinstalar
+        shell: pwsh
+        run: |
+          $exe = (Get-ChildItem pacotes\*.exe | Select-Object -First 1).FullName
+          Start-Process $exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CURRENTUSER','/NORESTART','/TASKS=atalho','/LOG=instalar.log' -Wait
+          $pasta = Join-Path $env:LOCALAPPDATA 'Programs\HONK'
+          foreach ($f in 'HONK.exe','honk.ico','LICENCA.txt','jogo\index.html','jogo\vendor\duckdb-eh.wasm','jogo\vendor\duckdb-mvp.wasm') {
+            if (-not (Test-Path (Join-Path $pasta $f))) { Get-Content instalar.log; throw "faltou $f em $pasta" }
+          }
+          $menu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\HONK!\HONK!.lnk'
+          if (-not (Test-Path $menu)) { throw "faltou o atalho do Menu Iniciar" }
+          if (-not (Test-Path (Join-Path ([Environment]::GetFolderPath('Desktop')) 'HONK!.lnk'))) { throw "faltou o atalho da Área de Trabalho" }
+          $des = Get-ChildItem $pasta -Filter 'unins*.exe' | Select-Object -First 1
+          Start-Process $des.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path (Join-Path $pasta 'HONK.exe')) { throw "a desinstalação deixou o HONK.exe" }
+          "| Windows | success |" >> $env:GITHUB_STEP_SUMMARY
+
+  homologar-macos:
+    name: Homologação · macOS (opcional)
+    needs: macos
+    if: needs.macos.outputs.ok == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 25
+    continue-on-error: true
+    outputs:
+      ok: ${{ steps.fim.outputs.ok }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: app-macos, path: pacotes }
+      - name: Abrir o .dmg, copiar para Aplicativos e conferir
+        run: |
+          hdiutil attach pacotes/*.dmg -mountpoint /Volumes/HONK -nobrowse -quiet
+          cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/" 2>/dev/null || { mkdir -p "$HOME/Applications"; cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/"; }
+          hdiutil detach /Volumes/HONK -quiet
+          APP="$HOME/Applications/HONK.app/Contents"
+          for f in Info.plist MacOS/HONK Resources/honk.icns Resources/jogo/index.html Resources/jogo/vendor/duckdb-eh.wasm; do
+            [ -s "$APP/$f" ] || { echo "::error::faltou $f"; exit 1; }
+          done
+          [ -x "$APP/MacOS/HONK" ]
+          plutil -lint "$APP/Info.plist"
+          rm -rf "$HOME/Applications/HONK.app"
+          echo "| macOS | success |" >> "$GITHUB_STEP_SUMMARY"
+      - id: fim
+        run: echo "ok=true" >> "$GITHUB_OUTPUT"
 
   publicar:
     name: Publicar na página de Releases
-    if: github.ref_type == 'tag'
-    needs: [montar, windows, macos]
+    # Publica quando Linux e Windows passaram; o .dmg entra se o Mac também tiver passado.
+    if: >-
+      always() && github.ref_type == 'tag' &&
+      needs.montar.result == 'success' &&
+      needs.homologar-linux.result == 'success' &&
+      needs.homologar-windows.result == 'success'
+    needs: [montar, homologar-linux, homologar-windows, homologar-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with: { path: arquivos, merge-multiple: true }
+      - name: Somas de conferência (SHA256SUMS.txt)
+        run: |
+          cd arquivos
+          shopt -s nullglob
+          [ "${{ needs.homologar-macos.outputs.ok }}" = true ] || rm -f *.dmg     # .dmg só se foi homologado
+          sha256sum *.exe *.deb *.rpm *.dmg *.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           name: HONK! ${{ github.ref_name }}
+          body_path: arquivos/notas.md
           files: |
             arquivos/*.exe
             arquivos/*.deb
             arquivos/*.rpm
             arquivos/*.dmg
             arquivos/*.zip
-          body: |
-            ## Como instalar
-            | Sistema | Arquivo |
-            |---|---|
-            | **Windows 10/11** | `HONK-…-instalador-windows.exe` — Avançar, Avançar, Concluir. Cria o ícone na Área de Trabalho. |
-            | **Debian / Ubuntu / Mint** | `honk_…_all.deb` — dois cliques, ou `sudo apt install ./honk_…_all.deb` |
-            | **Fedora** | `honk-…noarch.rpm` — dois cliques, ou `sudo dnf install ./honk-…noarch.rpm` |
-            | **macOS** | `HONK-…-macos.dmg` — arraste para Aplicativos; na 1ª vez, botão direito > Abrir |
-            | **Sem instalar** | `HONK-…-portatil.zip` — descompacte e use o lançador do seu sistema |
-
-            O jogo abre numa janela própria do Edge/Chrome, sem terminal, e roda 100% offline.
+            arquivos/SHA256SUMS.txt

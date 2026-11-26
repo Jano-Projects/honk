@@ -1,0 +1,59 @@
+name: Problema
+description: O jogo não instala, não abre, trava ou fica com a tela preta
+labels: ["problema"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por avisar. No Linux, `HONK_MOSTRAR=1 honk` no terminal mostra qual navegador o lançador escolheu: cole a saída abaixo.
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do HONK!
+      description: Aparece no nome do instalador e na tela inicial.
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: sistema
+    attributes:
+      label: Sistema
+      options:
+        - Windows 10
+        - Windows 11
+        - Debian
+        - Ubuntu
+        - Linux Mint
+        - Fedora
+        - Outro Linux
+        - macOS
+    validations:
+      required: true
+  - type: dropdown
+    id: forma
+    attributes:
+      label: Como você instalou
+      options:
+        - Instalador (.exe, .deb, .rpm ou .dmg)
+        - Versão portátil (.zip)
+        - Pelo código (ferramentas/montar.py)
+    validations:
+      required: true
+  - type: input
+    id: navegador
+    attributes:
+      label: Navegador
+      placeholder: "Chrome 131, Edge, Chromium (snap), Firefox..."
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que apareceu. Prints ajudam.
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Mensagens de erro
+      description: Se a janela abriu, aperte F12 > Console e cole as linhas vermelhas.
+      render: text

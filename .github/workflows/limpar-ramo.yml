@@ -1,0 +1,24 @@
+name: Limpeza de ramos
+
+# Apaga o ramo de um pedido do Dependabot assim que ele é mesclado,
+# para o repositório manter só a main.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  limpar:
+    name: Apagar o ramo mesclado
+    if: github.event.pull_request.merged && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apagar o ramo
+        run: gh api -X DELETE "repos/$REPO/git/refs/heads/$RAMO" || echo "já apagado"
+        env:
+          REPO: ${{ github.repository }}
+          RAMO: ${{ github.event.pull_request.head.ref }}
+          GH_TOKEN: ${{ github.token }}

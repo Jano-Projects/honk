@@ -56,17 +56,34 @@ O ícone vem de `empacotar/icone/honk.svg`; se mudar o desenho, rode `gerar_icon
 
 ## Publicar uma versão
 
-1. Atualize `VERSAO` e o `CHANGELOG.md`.
-2. Crie a tag e envie:
+1. Escreva as mudanças no `CHANGELOG.md`, numa seção `## X.Y.Z — AAAA-MM-DD`, e ponha o mesmo número no arquivo `VERSAO`.
+   Confira o texto que vai para a página de Releases:
    ```sh
-   git tag v1.0.0
-   git push origin v1.0.0
+   python3 ferramentas/notas-da-versao.py
    ```
-3. O workflow **Lançamento** monta tudo, roda os testes e publica na página de Releases:
-   `.exe` (Windows), `.deb`, `.rpm`, `.dmg` (macOS) e o `.zip` portátil.
+2. Envie, crie a tag e envie a tag:
+   ```sh
+   git commit -am "Versão X.Y.Z"
+   git push
+   git tag -a vX.Y.Z -m "HONK! X.Y.Z"
+   git push origin vX.Y.Z
+   ```
+3. O workflow **Lançamento** monta tudo, roda os testes, gera o `.exe`, o `.deb`, o `.rpm`, o `.dmg` e o `.zip`,
+   **homologa** cada um num sistema limpo ([como](homologacao.md)) e só então publica a release, com as notas
+   tiradas do CHANGELOG e o `SHA256SUMS.txt`. Se a tag não bater com o `VERSAO`, ou o CHANGELOG não tiver a seção
+   da versão, ele para antes de gerar qualquer coisa.
 
-Para testar o workflow sem publicar: aba **Actions › Lançamento › Run workflow**; os arquivos
-ficam em *Artifacts*.
+Para ensaiar sem publicar: aba **Actions › Lançamento › Run workflow**; os arquivos ficam em *Artifacts*.
+
+As regras de numeração estão em [Como contribuir › Versões](../CONTRIBUTING.md#versões).
+
+### Configuração do repositório no GitHub
+
+`bash ferramentas/configurar-github.sh` aplica (e reaplica, se algo mudar) a descrição e os tópicos,
+mesclagem só por *squash*, alertas e correções de segurança, varredura de segredos, CodeQL, token das
+*actions* só com leitura, proteção da `main` (exige **Testes das regras SQL** nos pull requests) e das tags
+`v*`, e os rótulos das issues. A imagem de prévia (`docs/capturas/previa-social.png`) se envia à mão em
+*Settings › General › Social preview*.
 
 Opcional: em *Settings › Secrets and variables › Actions › Variables*, crie `EMAIL_MANTENEDOR`
 com o e-mail que deve aparecer no pacote `.deb`.

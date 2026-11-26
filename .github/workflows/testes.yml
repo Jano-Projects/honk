@@ -1,13 +1,30 @@
-# HONK! — a cada envio (push/pull request): monta o jogo e roda os testes rápidos das regras SQL.
+# HONK! — a cada envio e pull request: monta o jogo e roda os testes das regras SQL
+# e uma rodada curta do caçador de bugs. É a verificação obrigatória da main.
 name: Testes
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Só leitura: este workflow não publica nada.
+permissions:
+  contents: read
+
 jobs:
   testes:
+    name: Testes das regras SQL
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
-      - run: pip install duckdb
-      - run: python3 ferramentas/montar.py
-      - run: python3 -m unittest discover -s testes -v
+      - name: DuckDB para Python
+        run: pip install duckdb
+      - name: Montar o jogo (dist/)
+        run: python3 ferramentas/montar.py
+      - name: Testes das regras
+        run: python3 -m unittest discover -s testes -v
+      - name: Caçador de bugs (rodada curta)
+        run: cd testes && python3 robo_bugs.py 1 800
