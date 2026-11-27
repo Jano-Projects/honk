@@ -17,9 +17,12 @@ a versão não é publicada.
 | Ubuntu (mais recente) | `ubuntu:rolling` | o mesmo, com o `.deb` |
 | Fedora (mais recente) | `fedora:latest` | o mesmo, com o `.rpm` |
 | Windows | `windows-latest` | instalador silencioso só para o usuário; `HONK.exe`, jogo, motor e licença na pasta; atalhos no Menu Iniciar e na Área de Trabalho; o desinstalador remove o programa |
-| macOS | `macos-latest` | o `.dmg` abre; o `HONK.app` vai para Aplicativos com lançador executável, ícone, jogo e motor; o `Info.plist` é válido |
+| macOS | `ubuntu-latest` | o `.zip` abre; o `HONK.app` tem lançador executável, ícone, jogo e motor; o `Info.plist` é válido; o jogo de dentro do app abre num Chrome, direto do disco |
 
-A fila de máquinas Mac do GitHub às vezes não anda. Por isso o macOS é **opcional** na publicação: o `.zip` com o `HONK.app` é montado no Linux e sai sempre; o `.dmg` só entra na release quando o Mac conseguiu montá-lo e homologá-lo. Linux e Windows são obrigatórios.
+O macOS é conferido numa máquina Linux, de propósito: a fila de máquinas Mac do GitHub chegava a
+travar por horas e derrubava o lançamento inteiro. O `HONK.app` é montado e zipado no Linux, e o que
+muda de um sistema para outro (a abertura do app pelo Finder e o aviso do Gatekeeper) fica no roteiro
+manual abaixo. Todas as plataformas são obrigatórias: se uma falhar, nada é publicado.
 
 Antes disso, ainda na montagem, o [teste de fumaça](../testes/fumaca_navegador.py) abre o jogo num
 Chrome de verdade, **direto do disco**, duas vezes: a versão montada (`dist/`) e a que sai de dentro do

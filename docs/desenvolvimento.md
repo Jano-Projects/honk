@@ -68,7 +68,7 @@ O ícone vem de `empacotar/icone/honk.svg`; se mudar o desenho, rode `gerar_icon
    git tag -a vX.Y.Z -m "HONK! X.Y.Z"
    git push origin vX.Y.Z
    ```
-3. O workflow **Lançamento** monta tudo, roda os testes, gera o `.exe`, o `.deb`, o `.rpm`, o `.dmg` e o `.zip`,
+3. O workflow **Lançamento** monta tudo, roda os testes, gera o `.exe`, o `.deb`, o `.rpm` e os `.zip` (macOS e portátil),
    **homologa** cada um num sistema limpo ([como](homologacao.md)) e só então publica a release, com as notas
    tiradas do CHANGELOG e o `SHA256SUMS.txt`. Se a tag não bater com o `VERSAO`, ou o CHANGELOG não tiver a seção
    da versão, ele para antes de gerar qualquer coisa.

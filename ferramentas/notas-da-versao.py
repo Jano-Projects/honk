@@ -42,7 +42,7 @@ def main() -> None:
 | **Windows 10/11** | [HONK-{v}-instalador-windows.exe]({base}/HONK-{v}-instalador-windows.exe) | Avançar, Avançar, Concluir. Cria o ícone na Área de Trabalho. Se o SmartScreen avisar: *Mais informações › Executar assim mesmo*. |
 | **Debian / Ubuntu / Mint** | [honk_{v}_all.deb]({base}/honk_{v}_all.deb) | Dois cliques, ou `sudo apt install ./honk_{v}_all.deb` |
 | **Fedora** | [honk-{v}-1.noarch.rpm]({base}/honk-{v}-1.noarch.rpm) | Dois cliques, ou `sudo dnf install ./honk-{v}-1.noarch.rpm` |
-| **macOS** | [HONK-{v}-macos.zip]({base}/HONK-{v}-macos.zip) | Dois cliques para descompactar e arraste o **HONK.app** para Aplicativos. Na primeira vez: botão direito › Abrir (o app não é assinado pela Apple). Se a lista de arquivos tiver o `HONK-{v}-macos.dmg`, ele faz o mesmo. |
+| **macOS** | [HONK-{v}-macos.zip]({base}/HONK-{v}-macos.zip) | Dois cliques para descompactar e arraste o **HONK.app** para Aplicativos. Na primeira vez: botão direito › Abrir (o app não é assinado pela Apple). |
 | **Sem instalar** | [HONK-{v}-portatil.zip]({base}/HONK-{v}-portatil.zip) | Descompacte e abra o lançador do seu sistema (veja o `LEIAME.txt`). |
 
 O ícone abre o jogo numa **janela própria** do Edge, Chrome, Brave ou Chromium, sem terminal e sem barra de endereço. O jogo roda **100% offline**: o motor vai junto no instalador.
@@ -53,7 +53,7 @@ O ícone abre o jogo numa **janela própria** do Edge, Chrome, Brave ou Chromium
 
 O `SHA256SUMS.txt` traz a soma de cada arquivo. No Linux ou no macOS, na pasta dos downloads: `sha256sum -c --ignore-missing SHA256SUMS.txt` (no macOS, `shasum -a 256 -c`). No Windows: `Get-FileHash .\\HONK-{v}-instalador-windows.exe` no PowerShell, e compare com o arquivo.
 
-Todos os instaladores desta versão foram instalados, conferidos e removidos automaticamente em Debian, Ubuntu, Fedora, Windows e macOS antes da publicação ([homologação](https://github.com/{REPO}/blob/main/docs/homologacao.md)).""")
+Antes da publicação, cada instalador foi instalado, conferido e removido automaticamente em Debian, Ubuntu, Fedora e Windows, e o app do macOS foi aberto e conferido, com o jogo de dentro dele rodando num navegador ([homologação](https://github.com/{REPO}/blob/main/docs/homologacao.md)).""")
 
 
 if __name__ == "__main__":

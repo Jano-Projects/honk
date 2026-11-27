@@ -5,11 +5,12 @@
 #    1. monta o jogo (dist/), baixa o motor DuckDB e roda os testes das regras SQL
 #    2. gera os pacotes Linux (.deb e .rpm) e a versão portátil (.zip)
 #    3. gera o instalador do Windows (.exe, Inno Setup) numa máquina Windows
-#    4. gera o aplicativo do macOS: o .zip com o HONK.app sai sempre (montado no
-#       Linux); o .dmg, quando o GitHub tem uma máquina Mac livre. A fila de Macs
-#       do GitHub às vezes não anda: nesse caso a versão sai sem o .dmg, nunca trava.
-#    5. homologa: instala cada pacote num sistema limpo (Debian, Ubuntu, Fedora,
-#       Windows e macOS), confere os arquivos e o lançador e desinstala
+#    4. gera o aplicativo do macOS (HONK.app num .zip), montado no próprio Linux.
+#       Não usa máquina Mac do GitHub: a fila delas trava por horas e derrubava o
+#       lançamento inteiro. (Num Mac, empacotar/macos/montar-app.sh também gera o .dmg.)
+#    5. homologa: instala cada pacote num sistema limpo (Debian, Ubuntu, Fedora e
+#       Windows), confere os arquivos e o lançador e desinstala; o .zip do macOS é
+#       aberto e conferido, e o jogo de dentro dele roda num Chrome de verdade
 #    6. publica tudo na página de Releases, com as notas tiradas do CHANGELOG.md
 #       (ferramentas/notas-da-versao.py) e o SHA256SUMS.txt
 #  Também dá para rodar à mão (aba Actions > Lançamento > Run workflow): aí gera
@@ -115,27 +116,6 @@ jobs:
       - uses: actions/upload-artifact@v7
         with: { name: instalador-windows, path: "saida/*.exe" }
 
-  macos:
-    name: Aplicativo do macOS (.dmg, opcional)
-    needs: montar
-    runs-on: macos-latest
-    timeout-minutes: 25
-    continue-on-error: true      # sem Mac livre no GitHub, a versão sai só com o .zip do macOS
-    outputs:
-      ok: ${{ steps.fim.outputs.ok }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with: { name: dist, path: dist }
-      - name: HONK.app e .dmg
-        run: |
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then echo "${GITHUB_REF_NAME#v}" > VERSAO; fi
-          sh empacotar/macos/montar-app.sh
-      - uses: actions/upload-artifact@v7
-        with: { name: app-macos, path: "saida/*.dmg" }
-      - id: fim
-        run: echo "ok=true" >> "$GITHUB_OUTPUT"
-
   # ---------------- homologação: instalar, conferir e remover em sistemas limpos ----------------
   homologar-linux:
     name: Homologação · ${{ matrix.nome }}
@@ -215,42 +195,35 @@ jobs:
           "| Windows | success |" >> $env:GITHUB_STEP_SUMMARY
 
   homologar-macos:
-    name: Homologação · macOS (opcional)
-    needs: macos
-    if: needs.macos.outputs.ok == 'true'
-    runs-on: macos-latest
-    timeout-minutes: 25
-    continue-on-error: true
-    outputs:
-      ok: ${{ steps.fim.outputs.ok }}
+    name: Homologação · macOS (.zip, conferido no Linux)
+    needs: montar
+    runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12" }
       - uses: actions/download-artifact@v8
-        with: { name: app-macos, path: pacotes }
-      - name: Abrir o .dmg, copiar para Aplicativos e conferir
+        with: { name: pacotes-linux, path: pacotes }
+      - name: Abrir o .zip como o Finder faz e conferir o HONK.app
         run: |
-          hdiutil attach pacotes/*.dmg -mountpoint /Volumes/HONK -nobrowse -quiet
-          mkdir -p "$HOME/Applications"        # sem a pasta, o cp -R criaria "Applications" com o conteúdo do app
-          cp -R "/Volumes/HONK/HONK.app" "$HOME/Applications/"
-          hdiutil detach /Volumes/HONK -quiet
-          APP="$HOME/Applications/HONK.app/Contents"
-          for f in Info.plist MacOS/HONK Resources/honk.icns Resources/jogo/index.html Resources/jogo/vendor/duckdb-eh.wasm; do
+          unzip -q pacotes/HONK-*-macos.zip -d mac
+          APP=mac/HONK.app/Contents
+          for f in Info.plist MacOS/HONK Resources/honk.icns Resources/jogo/index.html \
+                   Resources/jogo/vendor/duckdb-browser.mjs Resources/jogo/vendor/duckdb-eh.wasm; do
             [ -s "$APP/$f" ] || { echo "::error::faltou $f"; exit 1; }
           done
-          [ -x "$APP/MacOS/HONK" ]
-          plutil -lint "$APP/Info.plist"
-          rm -rf "$HOME/Applications/HONK.app"
-          echo "| macOS | success |" >> "$GITHUB_STEP_SUMMARY"
-      - id: fim
-        run: echo "ok=true" >> "$GITHUB_OUTPUT"
+          [ -x "$APP/MacOS/HONK" ] || { echo "::error::o lançador perdeu a permissão de execução"; exit 1; }
+          python3 -c "import plistlib,sys; d=plistlib.load(open(sys.argv[1],'rb')); assert d['CFBundleExecutable']=='HONK', d" "$APP/Info.plist"
+      - name: O jogo de dentro do HONK.app abre num Chrome, direto do disco
+        run: |
+          pip install playwright
+          HONK_PAGINA=mac/HONK.app/Contents/Resources/jogo/index.html python3 testes/fumaca_navegador.py
+          echo "| macOS (.zip) | success |" >> "$GITHUB_STEP_SUMMARY"
 
   publicar:
     name: Publicar na página de Releases
-    # Publica quando Linux e Windows passaram; o .dmg entra se o Mac também tiver passado.
-    if: >-
-      always() && github.ref_type == 'tag' &&
-      needs.montar.result == 'success' &&
-      needs.homologar-linux.result == 'success' &&
-      needs.homologar-windows.result == 'success'
+    # Só publica se todas as homologações passaram.
+    if: github.ref_type == 'tag'
     needs: [montar, homologar-linux, homologar-windows, homologar-macos]
     runs-on: ubuntu-latest
     permissions:
@@ -261,9 +234,7 @@ jobs:
       - name: Somas de conferência (SHA256SUMS.txt)
         run: |
           cd arquivos
-          shopt -s nullglob
-          [ "${{ needs.homologar-macos.outputs.ok }}" = true ] || rm -f *.dmg     # .dmg só se foi homologado
-          sha256sum *.exe *.deb *.rpm *.dmg *.zip > SHA256SUMS.txt
+          sha256sum *.exe *.deb *.rpm *.zip > SHA256SUMS.txt
           cat SHA256SUMS.txt
       - uses: softprops/action-gh-release@v3
         with:
@@ -273,6 +244,5 @@ jobs:
             arquivos/*.exe
             arquivos/*.deb
             arquivos/*.rpm
-            arquivos/*.dmg
             arquivos/*.zip
             arquivos/SHA256SUMS.txt

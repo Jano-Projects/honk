@@ -80,7 +80,7 @@ Baixe o instalador do seu sistema na [página de lançamentos](https://github.co
 | **Windows 10/11** | `HONK-…-instalador-windows.exe` | Avançar, Avançar, Concluir. Cria o ícone na Área de Trabalho. |
 | **Debian / Ubuntu / Mint** | `honk_…_all.deb` | Dois cliques, ou `sudo apt install ./honk_…_all.deb` |
 | **Fedora** | `honk-…noarch.rpm` | Dois cliques, ou `sudo dnf install ./honk-…noarch.rpm` |
-| **macOS** | `HONK-…-macos.zip` (ou `.dmg`) | Descompacte e arraste o HONK.app para Aplicativos. Na 1ª vez: botão direito › Abrir (o app não é assinado pela Apple). |
+| **macOS** | `HONK-…-macos.zip` | Descompacte e arraste o HONK.app para Aplicativos. Na 1ª vez: botão direito › Abrir (o app não é assinado pela Apple). |
 | **Sem instalar** | `HONK-…-portatil.zip` | Descompacte e abra o lançador do seu sistema. |
 
 O ícone abre o jogo numa **janela própria** do Edge, Chrome, Brave ou Chromium — sem terminal,
